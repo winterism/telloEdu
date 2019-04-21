@@ -1,9 +1,9 @@
 '''
-tello class 설명
-__init__(self) : 객체생성
-send_command(self, command) :  명령 보내기
-_receive_thread(self) : 텔로로 부터 받은 가장 최근의 것을 self.response에 저장한다. 
-get_log() : 로그 받기
+Tello class 설명
+  __init__(self) : 생성자 
+  send_command(self, command) :  명령 보내기
+  _receive_thread(self) : 텔로로 부터 받은 가장 최근의 것을 self.response에 저장한다. 
+  get_log() : 로그 받기
 '''
 
 import socket
