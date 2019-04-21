@@ -21,12 +21,12 @@ class Stats:
         return diff.total_seconds()
 
     def print_stats(self):
-        print '\nid: %s' % self.id
-        print 'command: %s' % self.command
-        print 'response: %s' % self.response
-        print 'start time: %s' % self.start_time
-        print 'end_time: %s' % self.end_time
-        print 'duration: %s\n' % self.duration
+        print ('\nid: %s' % self.id)
+        print ('command: %s' % self.command)
+        print ('response: %s' % self.response)
+        print ('start time: %s' % self.start_time)
+        print ('end_time: %s' % self.end_time)
+        print ('duration: %s\n' % self.duration)
 
     def got_response(self):
         if self.response is None:
