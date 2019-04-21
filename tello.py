@@ -7,19 +7,19 @@ class Tello:
     def __init__(self):
         self.local_ip = ''
         self.local_port = 8889
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # socket for sending cmd
-        self.socket.bind((self.local_ip, self.local_port))
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 명령 소켓 생성
+        self.socket.bind((self.local_ip, self.local_port)) #소켓을 로컬IP와 포트에 바인드
 
-        # thread for receiving cmd ack
+        # 명령이 전달될 쓰레드 생성하고 쓰레드 시작
         self.receive_thread = threading.Thread(target=self._receive_thread)
         self.receive_thread.daemon = True
         self.receive_thread.start()
-
+        #텔로 아이피 지정
         self.tello_ip = '192.168.10.1'
         self.tello_port = 8889
         self.tello_adderss = (self.tello_ip, self.tello_port)
         self.log = []
-
+        #타임아웃 시간 15초
         self.MAX_TIME_OUT = 15.0
 
     def send_command(self, command):
@@ -35,33 +35,31 @@ class Tello:
         self.log.append(Stats(command, len(self.log)))
 
         self.socket.sendto(command.encode('utf-8'), self.tello_adderss)
-        print 'sending command: %s to %s' % (command, self.tello_ip)
+        print('sending command: %s to %s'%(command, self.tello_ip))
 
         start = time.time()
         while not self.log[-1].got_response():
             now = time.time()
             diff = now - start
             if diff > self.MAX_TIME_OUT:
-                print 'Max timeout exceeded... command %s' % command
+                print('Max timeout exceeded... command %s'%(command))
                 # TODO: is timeout considered failure or next command still get executed
                 # now, next one got executed
                 return
-        print 'Done!!! sent command: %s to %s' % (command, self.tello_ip)
+        print('Done!!! sent command: %s to %s'%(command, self.tello_ip))
 
     def _receive_thread(self):
         """Listen to responses from the Tello.
-
         Runs as a thread, sets self.response to whatever the Tello last returned.
-
         """
         while True:
             try:
                 self.response, ip = self.socket.recvfrom(1024)
-                print('from %s: %s' % (ip, self.response))
+                print('from %s: %s'%(ip, self.response))
 
                 self.log[-1].add_response(self.response)
-            except socket.error, exc:
-                print "Caught exception socket.error : %s" % exc
+            except socket.error as exc:
+                print("Caught exception socket.error : %s"%(exc))
 
     def on_close(self):
         pass
@@ -71,4 +69,3 @@ class Tello:
 
     def get_log(self):
         return self.log
-
