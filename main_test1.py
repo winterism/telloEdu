@@ -38,6 +38,28 @@ for i in range(90, 50, -10):
   tello.send_command("go 0 0 %d 10 m1" %i)
   time.sleep(0.5)
 
+# 맵간 이동 : 
+tello.send_command("jump 0 0 100 10 0 m1 m2")
+time.sleep(0.5)
+tello.send_command("go 0 0 50 10 m2")
+time.sleep(0.5)
+tello.send_command("up 100")
+time.sleep(0.5)
+tello.send_command("jump 0 0 100 10 0 m2 m3")
+time.sleep(0.5)
+tello.send_command("go 0 0 50 10 m3")
+time.sleep(0.5)
+tello.send_command("up 100")
+time.sleep(0.5)
+tello.send_command("jump 0 0 100 10 0 m3 m4")
+time.sleep(0.5)
+tello.send_command("up 100")
+time.sleep(0.5)
+tello.send_command("jump 0 0 100 10 0 m4 m1")
+time.sleep(0.5)
+tello.send_command("up 100")
+time.sleep(0.5)
+
 # 착륙
 tello.send_command("moff")
 tello.send_command("land")
