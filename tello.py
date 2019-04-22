@@ -10,9 +10,6 @@ import socket
 import threading
 import time
 from stats import Stats
-import curses
-import curses.textpad
-
 
 class Tello:
     def __init__(self):
@@ -26,10 +23,6 @@ class Tello:
         self.receive_thread.start()
 
         # 명령이 전달될 쓰레드 생성하고 쓰레드 시작
-        self.key = 0
-        self.send_thread = threading.Thread(target=self._send_thread) #_receive_thread를 별도 쓰레드로 지정
-        self.send_thread.daemon = True # 데몬으로 작동하도록 설정, 데몬쓰레드는 메인쓰레드가 끝나면 끝난다.
-        self.send_thread.start()
 
         #텔로 아이피 지정
         self.tello_ip = '192.168.10.1'
@@ -39,9 +32,6 @@ class Tello:
 
         #타임아웃 시간 15초
         self.MAX_TIME_OUT = 15.0
-
-        stdscr.clear()
-        stdscr.refresh()
 
     def sendCmd(self, command):
         """
@@ -65,23 +55,6 @@ class Tello:
         
         #현재시간과 지연시간을 비교하여 초과하면 블록됨
         print('명령 보내기 성공: %s to %s'%(command, self.tello_ip))
-
-    def _send_thread(self):
-        """입력값을 할당한다."""
-        while (key != ord('q')):
-            stdscr.clear()
-            if key == curses.KEY_UP:
-                self.sendCmd("up 20")
-            elif key == curses.KEY_DOWN:
-                self.sendCmd("down 20")
-            elif key == curses.KEY_LEFT:
-                self.sendCmd("left 20")
-            elif key == curses.KEY_RIGHT:
-                self.sendCmd("right 20")
-            elif key == curses.ascii.ESC:
-                break
-            key = stdscr.getch()
-
 
     def _receive_thread(self):
         """
