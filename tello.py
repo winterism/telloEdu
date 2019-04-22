@@ -10,6 +10,9 @@ import socket
 import threading
 import time
 from stats import Stats
+import curses
+import curses.textpad
+
 
 class Tello:
     def __init__(self):
@@ -17,10 +20,16 @@ class Tello:
         self.local_port = 8889
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 명령 소켓 생성
         self.socket.bind((self.local_ip, self.local_port)) #소켓을 로컬IP와 포트에 바인드
-        # 명령이 전달될 쓰레드 생성하고 쓰레드 시작
+        # 응답이 보고될 쓰레드 생성하고 쓰레드 시작
         self.receive_thread = threading.Thread(target=self._receive_thread) #_receive_thread를 별도 쓰레드로 지정
         self.receive_thread.daemon = True # 데몬으로 작동하도록 설정, 데몬쓰레드는 메인쓰레드가 끝나면 끝난다.
         self.receive_thread.start()
+
+        # 명령이 전달될 쓰레드 생성하고 쓰레드 시작
+        self.key = 0
+        self.send_thread = threading.Thread(target=self._send_thread) #_receive_thread를 별도 쓰레드로 지정
+        self.send_thread.daemon = True # 데몬으로 작동하도록 설정, 데몬쓰레드는 메인쓰레드가 끝나면 끝난다.
+        self.send_thread.start()
 
         #텔로 아이피 지정
         self.tello_ip = '192.168.10.1'
@@ -31,7 +40,10 @@ class Tello:
         #타임아웃 시간 15초
         self.MAX_TIME_OUT = 15.0
 
-    def send_command(self, command):
+        stdscr.clear()
+        stdscr.refresh()
+
+    def sendCmd(self, command):
         """
         텔로 ip에 명령을 보냅니다. OK가 수신될때까지 이 함수에 머물게 됩니다.
         즉, 보낸명령이 수행되었다는 보고를 받기 전까진 다른 명령을 보낼 수 없습니다.
@@ -53,6 +65,23 @@ class Tello:
         
         #현재시간과 지연시간을 비교하여 초과하면 블록됨
         print('명령 보내기 성공: %s to %s'%(command, self.tello_ip))
+
+    def _send_thread(self):
+        """입력값을 할당한다."""
+        while (key != ord('q')):
+            stdscr.clear()
+            if key == curses.KEY_UP:
+                self.sendCmd("up 20")
+            elif key == curses.KEY_DOWN:
+                self.sendCmd("down 20")
+            elif key == curses.KEY_LEFT:
+                self.sendCmd("left 20")
+            elif key == curses.KEY_RIGHT:
+                self.sendCmd("right 20")
+            elif key == curses.ascii.ESC:
+                break
+            key = stdscr.getch()
+
 
     def _receive_thread(self):
         """
