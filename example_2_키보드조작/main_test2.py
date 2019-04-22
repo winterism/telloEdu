@@ -11,7 +11,6 @@ w s a d : 앞/뒤/왼쪽/오른쪽
 
 from tello import Tello #tello 모듈로 부터 Tello를 불러온다.
 import sys
-from datetime import datetime
 import time # 시간 관련 모듈
 import tkinter
 
