@@ -1,0 +1,167 @@
+'''
+Tello class 설명
+  __init__(self) : 생성자 
+  send_command(self, command) :  명령 보내기
+  _receive_thread(self) : 텔로로 부터 받은 가장 최근의 것을 self.response에 저장한다. 
+  get_log() : 로그 받기
+'''
+
+import socket
+import threading
+import time
+import cv2
+
+# from stats import Stats
+
+class Tello:
+
+    state = ''
+    cap = None
+    background_frame_read = None
+    stream_on = False
+    VS_UDP_IP = '0.0.0.0'
+    VS_UDP_PORT = 11111
+    streamAddress = 'udp://@0.0.0.0:11111'
+    cap = cv2.VideoCapture(streamAddress)
+
+    def __init__(self):
+        self.local_ip = ''
+        self.local_port = 8889
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 명령 소켓 생성
+        self.socket.bind((self.local_ip, self.local_port)) #소켓을 로컬IP와 포트에 바인드
+        # 응답이 보고될 쓰레드 생성하고 쓰레드 시작
+        # self.receive_thread = threading.Thread(target=self._receive_thread) #_receive_thread를 별도 쓰레드로 지정
+        # self.receive_thread.daemon = True # 데몬으로 작동하도록 설정, 데몬쓰레드는 메인쓰레드가 끝나면 끝난다.
+        # self.receive_thread.start()
+
+        self.control_thread = threading.Thread(target=self._control_thread) #_receive_thread를 별도 쓰레드로 지정
+        self.control_thread.daemon = True # 데몬으로 작동하도록 설정, 데몬쓰레드는 메인쓰레드가 끝나면 끝난다.
+        self.control_thread.start()
+        self.state = 'ready'
+
+        #텔로 아이피 지정
+        self.tello_ip = '192.168.10.1'
+        self.tello_port = 8889
+        self.tello_adderss = (self.tello_ip, self.tello_port)
+        self.log = []
+        #타임아웃 시간 15초
+        self.MAX_TIME_OUT = 15.0
+        self.speed_lr = 0
+        self.speed_fb = 0
+        self.speed_ud = 0
+        self.speed_yaw = 0
+        self.max_speed = 100
+
+    def sendCmd(self, command):
+        """
+        텔로 ip에 명령을 보냅니다. OK가 수신될때까지 이 함수에 머물게 됩니다.
+        즉, 보낸명령이 수행되었다는 보고를 받기 전까진 다른 명령을 보낼 수 없습니다.
+        """
+        self.socket.sendto(command.encode('utf-8'), self.tello_adderss) #명령을 보냄. 최중요 코드
+        print('명령을 보내는중... 명령: %s IP %s'%(command, self.tello_ip))
+        print('명령 보내기 성공: %s to %s'%(command, self.tello_ip))
+
+    def contrlNoReturn(self, command):
+        self.socket.sendto(command.encode('utf-8'), self.tello_adderss)
+
+    def get_udp_video_address(self):
+        return 'udp://@' + self.VS_UDP_IP + ':' + str(self.VS_UDP_PORT)  # + '?overrun_nonfatal=1&fifo_size=5000'
+
+
+    def get_video_capture(self):
+        """Get the VideoCapture object from the camera drone
+        Returns:
+            VideoCapture
+        """
+
+        if self.cap is None:
+            self.cap = cv2.VideoCapture(self.get_udp_video_address())
+
+        if not self.cap.isOpened():
+            self.cap.open(self.get_udp_video_address())
+
+        return self.cap
+
+    def get_frame_read(self):
+        """
+        백그라운드 프레임 가져오기
+        """
+        if self.background_frame_read is None:
+            self.background_frame_read = BackgroundFrameRead(self, self.get_udp_video_address()).start()
+        return self.background_frame_read
+
+    def _control_thread(self):
+        """
+        이 함수는 속도를 감속 하여 반환합니다.
+        반영되는 속도는 최고 속도를 넘지 않습니다.
+        takeoff 상태에서만 작동합니다.
+        """
+        while True:
+            if self.state == "takeoff":
+                msg = ("rc %d %d %d %d" %(self.speed_lr, self.speed_fb, self.speed_ud, self.speed_yaw))
+                self.socket.sendto(msg.encode('utf-8'), self.tello_adderss)
+                time.sleep(0.1)
+                print ("rc %d %d %d %d" %(self.speed_lr, self.speed_fb, self.speed_ud, self.speed_yaw))
+
+                if abs(self.speed_fb) > 20:
+                    temp = self.speed_fb
+                    self.speed_fb=(abs(temp)/2)*(abs(temp)/temp)
+                else :
+                    self.speed_fb = 0
+                if abs(self.speed_lr) > 20:
+                    temp = self.speed_lr
+                    self.speed_lr=(abs(temp)/2)*(abs(temp)/temp)
+                else :
+                    self.speed_lr = 0
+                if abs(self.speed_ud) > 20:
+                    temp = self.speed_ud
+                    self.speed_ud=(abs(temp)/2)*(abs(temp)/temp)
+                else :
+                    self.speed_ud = 0
+                if abs(self.speed_yaw) > 20:
+                    temp = self.speed_yaw
+                    self.speed_yaw=(abs(temp)/2)*(abs(temp)/temp)
+                else :
+                    self.speed_yaw = 0
+
+            else:
+                print("전송안함")
+                time.sleep(1)
+
+    def on_close(self):
+        pass
+
+    def get_log(self):
+        return self.log
+
+class BackgroundFrameRead:
+    """
+    This class read frames from a VideoCapture in background. Then, just call backgroundFrameRead.frame to get the
+    actual one.
+    """
+
+    def __init__(self, tello, address):
+        tello.cap = cv2.VideoCapture(address)
+        self.cap = tello.cap
+
+        if not self.cap.isOpened():
+            self.cap.open(address)
+
+        self.grabbed, self.frame = self.cap.read()
+        self.stopped = False
+
+    def start(self):
+        streamingThread = threading.Thread(target=self.update_frame, args=())
+        streamingThread.daemon = True
+        streamingThread.start()
+        return self
+
+    def update_frame(self):
+        while not self.stopped:
+            if not self.grabbed or not self.cap.isOpened():
+                self.stop()
+            else:
+                (self.grabbed, self.frame) = self.cap.read()
+
+    def stop(self):
+        self.stopped = True

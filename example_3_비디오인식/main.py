@@ -10,11 +10,13 @@ w s a d : 앞/뒤/왼쪽/오른쪽
 '''
 
 from tello import Tello #tello 모듈로 부터 Tello를 불러온다.
+from tello import VideoStreamer
 import sys
 import time # 시간 관련 모듈
 import tkinter
 
-tello = Tello() # tello 객체를 생성한다. tello모듈에 객체의 명세가 기록되어 있다.
+tello = Tello() # tello 인스턴스 를 생성한다. tello모듈에 객체의 명세가 기록되어 있다.
+video = VideoStreamer()  # 스트림 인스턴스 생성한다. 
 tello.sendCmd("command")
 
 def keyCmd(cmd):
@@ -68,6 +70,10 @@ def accelLR(cmd):
 def brake():
   tello.contrlNoReturn("stop")
 
+def streamVideoStart():
+  tello.contrlNoReturn("streamon")
+  video.startVideoStream()
+
 """
 이 아래는 키보드 맵핑과 gui 화면에 관련된 내용
 """
@@ -88,5 +94,7 @@ window.bind('a', lambda _: accelLR(-1)) #
 window.bind('d', lambda _: accelLR(1)) #
 window.bind('w', lambda _: accelFB(1)) #
 window.bind('s', lambda _: accelFB(-1)) #
+window.bind('[', lambda _: streamVideoStart()) #
+
 
 window.mainloop()
